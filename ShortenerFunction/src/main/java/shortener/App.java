@@ -1,14 +1,11 @@
 package shortener;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -18,31 +15,32 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
  */
 public class App implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
+    private static final Map<String, String> URLS = new HashMap<>() {{
+        put("/repo", "https://github.com/rospiel/study-serverless-linux-tips");
+        put("/gitpod", "https://gitpod.io/#github.com/rospiel/study-serverless-linux-tips");
+    }};
+    
     public APIGatewayProxyResponseEvent handleRequest(final APIGatewayProxyRequestEvent input, final Context context) {
+        LambdaLogger logger = context.getLogger();
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
         headers.put("X-Custom-Header", "application/json");
 
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent()
-                .withHeaders(headers);
-        try {
-            final String pageContents = this.getPageContents("https://checkip.amazonaws.com");
-            String output = String.format("{ \"message\": \"hello world\", \"location\": \"%s\" }", pageContents);
-
+            .withHeaders(headers);
+        String url = URLS.get(input.getPath());
+        
+        if (Objects.nonNull(url)) {
+            headers.put("Location", url);
+            logger.log(String.format("%s => %s %s", input.getPath(), 302, url));
             return response
-                    .withStatusCode(200)
-                    .withBody(output);
-        } catch (IOException e) {
-            return response
-                    .withBody("{}")
-                    .withStatusCode(500);
-        }
-    }
+                .withStatusCode(302)
+                .withBody(new String("Redirecting to ".concat(url)));
 
-    private String getPageContents(String address) throws IOException{
-        URL url = new URL(address);
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
-            return br.lines().collect(Collectors.joining(System.lineSeparator()));
-        }
+        } 
+        
+        return response
+                .withStatusCode(404)
+                .withBody("");
     }
 }
