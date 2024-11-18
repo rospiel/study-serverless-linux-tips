@@ -1,0 +1,86 @@
+#aws cloudformation create-stack --stack-name shortener-database --template-body file://database.template.yaml
+#aws cloudformation delete-stack --stack-name shortener-database
+#aws cloudformation update-stack --stack-name shortener-database --template-body file://database.template.yaml
+Description: 'Database Stack for URL Shortener'
+
+Parameters:
+  NetworkStackName:
+    Type: String 
+    Description: Name of the network stack
+    Default: shortener-network
+
+  DatabaseUsername:
+    Type: String 
+    Description: Database Username
+    Default: root
+
+  DatabasePassword:
+    Type: String 
+    Description: Database Password
+    NoEcho: true
+    Default: Masterkey123
+
+  DatabaseName:
+    Type: String 
+    Description: Database name
+    Default: urldb
+
+Resources:
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group for Database'    
+      VpcId:
+        # To access another variable exported from another template
+        Fn::ImportValue:
+          !Sub '${NetworkStackName}:VpcId'
+
+  DatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress        
+    Properties:
+      GroupId: !Ref DatabaseSecurityGroup
+      IpProtocol: 'tcp'
+      FromPort: '3306'
+      ToPort: '3306'
+      # Origin
+      CidrIp: '0.0.0.0/0'
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Subnet Group for Database'
+      SubnetIds:
+        - Fn::ImportValue:
+            !Sub '${NetworkStackName}:PrivateSubnet1'
+        - Fn::ImportValue:
+            !Sub '${NetworkStackName}:PrivateSubnet2'
+        - Fn::ImportValue:
+            !Sub '${NetworkStackName}:PrivateSubnet3'        
+
+  DatabaseCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: 'aurora-mysql'          
+      EngineMode: 'serverless'
+      MasterUsername: !Ref 'DatabaseUsername'
+      MasterUserPassword: !Ref 'DatabasePassword'
+      DBSubnetGroupName: !Ref 'DatabaseSubnetGroup'
+      DatabaseName: !Ref 'DatabaseName'
+      EnableHttpEndpoint: 'true'
+      Port: '3306'
+      VpcSecurityGroupIds: 
+        - !Ref 'DatabaseSecurityGroup'
+
+Outputs:
+  DatabaseSecurityGroupId:
+    # Documentation says that we have this value to return
+    Value: !GetAtt 'DatabaseSecurityGroup.GroupId'
+    Description: 'Security Group ID for Database'
+
+  DatabaseClusterEndpoint:
+    Value: !GetAtt 'DatabaseCluster.Endpoint.Address'  
+    Description: 'Database Cluster Endpoint'
+
+  DatabaseClusterArn:
+    Value: !GetAtt 'DatabaseCluster.DBClusterArn' 
+    Description: 'Database Cluster Arn'  
