@@ -1,9 +1,17 @@
+#sam deploy -t "template.yaml" --stack-name "shortener-stack" --capabilities CAPABILITY_IAM --resolve-s3
+#sam delete --stack-name url-shortener
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   url-shortener
 
   Sample SAM Template for url-shortener
+
+Parameters:
+  DatabaseStackName:
+    Type: String
+    Description: Name of the database stack
+    Default: shortener-database
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -23,7 +31,19 @@ Resources:
       MemorySize: 512
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
-          PARAM1: VALUE
+          DB_ADDRESS:
+            Fn::ImportValue:
+              !Sub '${DatabaseStackName}:DBAddress'
+          DB_USERNAME:
+            Fn::ImportValue:
+              !Sub '${DatabaseStackName}:DBUsername'
+          DB_PASSWORD:
+            Fn::ImportValue:
+              !Sub '${DatabaseStackName}:DBPassword'    
+          DB_NAME:
+            Fn::ImportValue:
+              !Sub '${DatabaseStackName}:DBName'        
+
           JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 # More info about tiered compilation https://aws.amazon.com/blogs/compute/optimizing-aws-lambda-function-performance-for-java/
       Events:
         Shortener:

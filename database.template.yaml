@@ -80,7 +80,24 @@ Outputs:
   DatabaseClusterEndpoint:
     Value: !GetAtt 'DatabaseCluster.Endpoint.Address'  
     Description: 'Database Cluster Endpoint'
+    Export:
+      Name: !Sub '${AWS::StackName}:DBAddress'
 
   DatabaseClusterArn:
     Value: !GetAtt 'DatabaseCluster.DBClusterArn' 
     Description: 'Database Cluster Arn'  
+
+  DatabaseName:
+    Value: !Ref 'DatabaseName'  
+    Export:
+      Name: !Sub '${AWS::StackName}:DBName'
+
+  DatabaseUsername:
+    Value: !Ref 'DatabaseUsername'  
+    Export:
+      Name: !Sub '${AWS::StackName}:DBUsername'
+
+  DatabasePassword:
+    Value: !Ref 'DatabasePassword'  
+    Export:
+      Name: !Sub '${AWS::StackName}:DBPassword'

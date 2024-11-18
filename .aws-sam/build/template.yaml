@@ -5,6 +5,11 @@ Description: 'url-shortener
   Sample SAM Template for url-shortener
 
   '
+Parameters:
+  DatabaseStackName:
+    Type: String
+    Description: Name of the database stack
+    Default: shortener-database
 Globals:
   Function:
     Timeout: 20
@@ -21,7 +26,18 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          PARAM1: VALUE
+          DB_ADDRESS:
+            Fn::ImportValue:
+              Fn::Sub: ${DatabaseStackName}:DBAddress
+          DB_USERNAME:
+            Fn::ImportValue:
+              Fn::Sub: ${DatabaseStackName}:DBUsername
+          DB_PASSWORD:
+            Fn::ImportValue:
+              Fn::Sub: ${DatabaseStackName}:DBPassword
+          DB_NAME:
+            Fn::ImportValue:
+              Fn::Sub: ${DatabaseStackName}:DBName
           JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
       Events:
         Shortener:
